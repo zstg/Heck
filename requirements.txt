@@ -1,0 +1,6 @@
+git+https://github.com/openai/whisper.git 
+speechrecognition 
+transformers 
+nltk
+moviepy==1.0.3
+tabulate

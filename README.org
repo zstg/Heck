@@ -1,0 +1,4 @@
+- sudo apt update --fix-missing 
+- sudo apt install ffmpeg
+- pip install -r src/requirements.txt
+- python src/First.py
