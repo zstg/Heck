@@ -1,11 +1,21 @@
 import moviepy.editor as mp
 import whisper
-from transformers import pipeline
 import os
+import re
+import nltk
+import spacy
 from datetime import datetime, timedelta
 from tabulate import tabulate
 
+# Download necessary NLTK data
+nltk.download("punkt")
+nltk.download("averaged_perceptron_tagger")
+
+# Load English NLP model for Named Entity Recognition (NER)
+nlp = spacy.load("en_core_web_sm")
+
 def extract_audio_from_video(video_path, audio_output_path="output.wav"):
+    """Extracts audio from video and saves it as a WAV file."""
     try:
         video = mp.VideoFileClip(video_path)
         audio = video.audio
@@ -17,6 +27,7 @@ def extract_audio_from_video(video_path, audio_output_path="output.wav"):
         return None
 
 def transcribe_audio(audio_path):
+    """Transcribes the extracted audio using Whisper AI."""
     try:
         model = whisper.load_model("base")
         result = model.transcribe(audio_path)
@@ -26,71 +37,56 @@ def transcribe_audio(audio_path):
         print(f"Error transcribing audio: {e}")
         return ""
 
-def summarize_text(text):
-    try:
-        summarizer = pipeline("summarization", model="t5-11b")
-        summary = summarizer(text, max_length=1500, min_length=250, do_sample=False)
-        print("Summary generated.")
-        return summary[0]['summary_text']
-    except Exception as e:
-        print(f"Error summarizing text: {e}")
-        return ""
-
 def extract_tasks(text):
-    try:
-        extractor = pipeline("text-generation", model="EleutherAI/gpt-neo-1.3B")
-        system_prompt = (
-            "Extract actionable tasks from the given meeting transcription. "
-            "Each task should be assigned to a person with a logical deadline. "
-            "Output each task on a new line in the format: Person | Task | Deadline."
-        )
+    """Extracts actionable tasks using NLP without any external API."""
+    sentences = nltk.sent_tokenize(text)
+    tasks = []
 
-        # Optional: Truncate transcript to last 2000 characters if it's too long
-        if len(text) > 2000:
-            text = text[-2000:]
+    for sentence in sentences:
+        doc = nlp(sentence)
+        persons = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
+        
+        # Extract verbs (potential actions)
+        words = nltk.word_tokenize(sentence)
+        pos_tags = nltk.pos_tag(words)
+        actions = [word for word, tag in pos_tags if tag.startswith("VB")]  # Verbs
+        
+        # Extract deadline (simple rule-based approach)
+        deadline_match = re.search(r"in (\d+) days|by (\d{4}-\d{2}-\d{2})", sentence)
+        deadline = "N/A"
+        if deadline_match:
+            if deadline_match.group(1):
+                deadline = f"Day {deadline_match.group(1)}"
+            elif deadline_match.group(2):
+                deadline = deadline_match.group(2)
 
-        tasks_output = extractor(
-            system_prompt + "\n" + text,
-            max_new_tokens=500,
-            do_sample=False,
-            truncation=True
-        )
+        # If a person and action are found, register as a task
+        if persons and actions:
+            person = persons[0]  # Assign the first detected person
+            task_desc = " ".join(actions)  # Join verbs into a task description
+            tasks.append([person, task_desc, deadline])
 
-        # Debug print to check the raw output
-        print("Raw Task Extraction Output:")
-        print(tasks_output[0]['generated_text'])
-
-        # Split and process tasks
-        tasks = tasks_output[0]['generated_text'].strip().split("\n")
-        extracted_tasks = []
-        for task in tasks:
-            if '|' in task:
-                extracted_tasks.append([item.strip() for item in task.split('|')])
-        return extracted_tasks
-    except Exception as e:
-        print(f"Error extracting tasks: {e}")
-        return []
+    return tasks
 
 def generate_schedule(tasks):
+    """Generates a schedule based on extracted tasks and deadlines."""
     today = datetime.today()
     schedule = []
+
     for task in tasks:
         if len(task) == 3:
             person, task_desc, deadline = task
-            if "date" in deadline.lower():
-                deadline = today.strftime("%Y-%m-%d")
-            elif deadline.strip().lower() == "nil":
-                deadline = "N/A"
-            else:
-                try:
-                    days_offset = int(deadline.strip().replace("Day ", ""))
-                    deadline = (today + timedelta(days=days_offset)).strftime("%Y-%m-%d")
-                except ValueError:
-                    deadline = "N/A"
-            schedule.append([person.strip(), task_desc.strip(), deadline])
+            try:
+                days_offset = int(deadline.strip().replace("Day ", ""))
+                deadline_date = (today + timedelta(days=days_offset)).strftime("%Y-%m-%d")
+            except ValueError:
+                deadline_date = "N/A"
+            schedule.append([person.strip(), task_desc.strip(), deadline_date])
+
     return schedule
 
-def summarize_meeting(video_path):
+def meeting_function(video_path):
+    """Main function to process a meeting video and generate a task summary."""
     print("Step 1: Extracting audio...")
     audio_path = extract_audio_from_video(video_path)
     if not audio_path:
@@ -102,28 +98,20 @@ def summarize_meeting(video_path):
         os.remove(audio_path)
         return "Failed to transcribe audio."
     
-    print("Step 3: Generating summary...")
-    summary = summarize_text(transcription)
-    if not summary:
-        os.remove(audio_path)
-        return "Failed to generate summary."
-    
-    print("Step 4: Extracting tasks...")
+    print("Step 3: Extracting tasks...")
     tasks = extract_tasks(transcription)
     
-    print("Step 5: Generating schedule...")
+    print("Step 4: Generating schedule...")
     schedule = generate_schedule(tasks)
-
+    print(schedule)
+    
     if os.path.exists(audio_path):
         os.remove(audio_path)
         print(f"Cleaned up temporary file: {audio_path}")
     
     final_output = f"""
-    Title: AI-Powered Meeting Summarization and Task Assignment
-
-    **Meeting Summary:**
-    {summary}
-
+    **AI-Powered Meeting Summarization and Task Assignment**
+    
     **Action Items & Schedule:**
     {tabulate(schedule, headers=["Assigned To", "Task", "Deadline"], tablefmt="grid")}
     """
@@ -139,6 +127,6 @@ if __name__ == "__main__":
     if not os.path.exists(video_file):
         print(f"Error: File '{video_file}' not found. Please upload it or check the path.")
     else:
-        output = summarize_meeting(video_file)
+        output = meeting_function(video_file)
         print("\nFinal Output:")
         print(output)

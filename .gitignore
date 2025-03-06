@@ -1,5 +1,5 @@
 harvard.wav.zip
 .venv
-output.wav
+*.wav
 meeting_summary.txt
-recording*.mp4
+*.mp4

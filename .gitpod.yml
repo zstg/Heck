@@ -6,7 +6,7 @@
 
 tasks:
   - init: sudo apt update
-    command: sudo apt --fix-broken install # ffmpeg --fix-missing # no need to reinstall ffmpeg, it's alredy preinstalled on Ubuntu
+    command: sudo apt --fix-broken install ffmpeg # --fix-missing
   - init: pip install -r requirements.txt
     command: python main.py
 
