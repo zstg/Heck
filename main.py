@@ -104,7 +104,7 @@ def summarize_meeting(video_path):
     return final_output
 
 if __name__ == "__main__":
-    video_file = "recording1.mp4"
+    video_file = "recording_1.mp4"
     if not os.path.exists(video_file):
         print(f"Error: File '{video_file}' not found. Please upload it or check the path.")
     else:
