@@ -55,7 +55,7 @@ def process_conversation(audio_file):
         "summary": summary
     }
 
-audio_file = "~/Downloads/harvard.wav"
+audio_file = "./harvard.wav"
 result = process_conversation(audio_file)
 
 if result:
