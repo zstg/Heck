@@ -28,7 +28,7 @@ def transcribe_audio(audio_path):
 
 def summarize_text(text):
     try:
-        summarizer = pipeline("summarization", model="t5-3b")
+        summarizer = pipeline("summarization", model="t5-11b")
         summary = summarizer(text, max_length=1500, min_length=250, do_sample=False)
         print("Summary generated.")
         return summary[0]['summary_text']
@@ -42,11 +42,31 @@ def extract_tasks(text):
         system_prompt = (
             "Extract actionable tasks from the given meeting transcription. "
             "Each task should be assigned to a person with a logical deadline. "
-            "Output in the format: Person | Task | Deadline."
+            "Output each task on a new line in the format: Person | Task | Deadline."
         )
-        tasks_output = extractor(system_prompt + "\n" + text, max_length=300, do_sample=False)
-        tasks = tasks_output[0]['generated_text'].split("\n")
-        return [task.split('|') for task in tasks if '|' in task]
+
+        # Optional: Truncate transcript to last 2000 characters if it's too long
+        if len(text) > 2000:
+            text = text[-2000:]
+
+        tasks_output = extractor(
+            system_prompt + "\n" + text,
+            max_new_tokens=500,
+            do_sample=False,
+            truncation=True
+        )
+
+        # Debug print to check the raw output
+        print("Raw Task Extraction Output:")
+        print(tasks_output[0]['generated_text'])
+
+        # Split and process tasks
+        tasks = tasks_output[0]['generated_text'].strip().split("\n")
+        extracted_tasks = []
+        for task in tasks:
+            if '|' in task:
+                extracted_tasks.append([item.strip() for item in task.split('|')])
+        return extracted_tasks
     except Exception as e:
         print(f"Error extracting tasks: {e}")
         return []
@@ -93,17 +113,17 @@ def summarize_meeting(video_path):
     
     print("Step 5: Generating schedule...")
     schedule = generate_schedule(tasks)
-    
+
     if os.path.exists(audio_path):
         os.remove(audio_path)
         print(f"Cleaned up temporary file: {audio_path}")
     
     final_output = f"""
     Title: AI-Powered Meeting Summarization and Task Assignment
-    
+
     **Meeting Summary:**
     {summary}
-    
+
     **Action Items & Schedule:**
     {tabulate(schedule, headers=["Assigned To", "Task", "Deadline"], tablefmt="grid")}
     """
