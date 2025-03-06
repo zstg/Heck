@@ -7,9 +7,9 @@
   # Use https://search.nixos.org/packages to find packages
   packages = with pkgs; [
     python312Full
-    python312Packages.numpy
-    python312Packages.keras
-    python312Packages.speechrecognition
+    #python312Packages.numpy
+    #python312Packages.keras
+    #python312Packages.speechrecognition
   ];
 
   # Sets environment variables in the workspace
