@@ -1,0 +1,17 @@
+
+**AI-Powered Meeting Summarization and Task Assignment**
+
+
+**Full Meeting Transcript:**
+
+Boss, alright team, let's keep this shot into the point, we've got 5 minutes. Adam, I need you to analyze last week's sales reports and identify any unusual trends. Take the next star, summarize the key points and send me an email by 11A. Alex, you're inclined for lots. Reach out to the top 3 priority clients and get updates on their pending deals. Keep it brief, log everything in the CRM and update me before lunch. Smith, focus on inventory checks. I need a status report on stock levels by 2PM, especially on the top selling items. If there's any shortage, flag it immediately. Maxwell, work on the present, work on the marketing presentation for Friday's meeting. You've got the morning to draft it, make sure it's clear and data backed. I'll review it at 3PM. That's it. No delays, no excuses. If anything comes up, let me know. Now, get to work.
+
+**Action Items & Schedule:**
+
+| Assigned To   | Task   | Deadline   |
+|---------------|--------|------------|
+| Alex | Analyse last week's sales reports and identify trends | 24-6-25 |
+| Adam | Summarise key points, identify unusual trends, send email by 11 AM | 26-6-25  |
+| Adam | Reach out to top 3 clients and get updates | 26-6-25 |
+| Smith | Inventory checks before 2pm | 26-6-25 |
+| Maxwell | Work on marketing presentation | 28-6-25 |
